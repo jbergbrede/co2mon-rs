@@ -17,3 +17,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1.37"
 tracing-subscriber = "0.3"
+
+[package.metadata.cross.build]
+pre-build = [ # additional commands to run prior to building the package
+    "dpkg --add-architecture $CROSS_DEB_ARCH", 
+    "apt-get update && apt-get --assume-yes install libudev-dev:$CROSS_DEB_ARCH"
+]
