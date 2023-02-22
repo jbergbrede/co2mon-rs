@@ -1,13 +1,13 @@
 extern crate hidapi;
 
 use clap::{arg, command};
-use co2mon_rs::{checksum, decrypt, is_encrypted, parse_record, Config, Record};
+use co2mon_rs::{decrypt, is_encrypted, parse_record, validate, Config, Record};
 use color_eyre::eyre::Result;
 use hidapi::HidApi;
 use rumqttc::{Client, MqttOptions, QoS};
 use std::time::Duration;
 use std::{env, thread};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
@@ -49,10 +49,13 @@ fn main() -> Result<()> {
 
     loop {
         device.read(&mut buf)?;
-        if is_encrypted(buf) {
-            buf = checksum(decrypt(&key, buf))?;
-        } else {
-            buf = checksum(buf)?;
+        if is_encrypted(&buf) {
+            decrypt(&key, &mut buf);
+        }
+
+        if let Err(e) = validate(&buf) {
+            warn!("Validation failed for: {:?} - {:?}", &buf, e);
+            continue;
         }
 
         let record = Record {

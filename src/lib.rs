@@ -17,16 +17,16 @@ impl fmt::Display for Errors {
 
 impl Error for Errors {}
 
-pub fn checksum(arr: [u8; 8]) -> Result<[u8; 8], Errors> {
+pub fn validate(arr: &[u8; 8]) -> Result<(), Errors> {
     let checksum: u16 = arr[0..3].iter().map(|i| *i as u16).sum::<u16>() & 0xff;
-    if (arr[3] as u16 != checksum) | is_encrypted(arr) {
+    if (arr[3] as u16 != checksum) | is_encrypted(&arr) {
         Err(Errors::ChecksumError)
     } else {
-        Ok(arr)
+        Ok(())
     }
 }
 
-pub fn is_encrypted(arr: [u8; 8]) -> bool {
+pub fn is_encrypted(arr: &[u8; 8]) -> bool {
     // see: https://github.com/heinemml/CO2Meter/issues/4
     // some (newer?) devices don't encrypt the data, if byte 4 != 0x0d
     // assume encrypted data
@@ -34,7 +34,7 @@ pub fn is_encrypted(arr: [u8; 8]) -> bool {
     arr[4] != 0x0d
 }
 
-pub fn decrypt<'a>(key: &[u8; 8], data: [u8; 8]) -> [u8; 8] {
+pub fn decrypt<'a>(key: &[u8; 8], data: &mut [u8; 8]) -> () {
     let cstate: [u8; 8] = [0x48, 0x74, 0x65, 0x6D, 0x70, 0x39, 0x39, 0x65];
     let shuffle: [usize; 8] = [2, 4, 0, 7, 1, 6, 5, 3];
 
@@ -58,8 +58,7 @@ pub fn decrypt<'a>(key: &[u8; 8], data: [u8; 8]) -> [u8; 8] {
         .map(|i| (0x100u16 + phase3[i] as u16 - ctmp[i] as u16) & 0xffu16)
         .enumerate()
         .for_each(|(i, b)| decrypted[i] = b as u8);
-
-    decrypted
+    *data = decrypted;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -110,21 +109,28 @@ impl Default for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::{decrypt, is_encrypted};
+    use crate::{decrypt, is_encrypted, validate, Errors::ChecksumError};
 
     #[test]
     fn test_decrypt() {
-        let data: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
+        let mut data: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
         let key: [u8; 8] = [8, 7, 6, 5, 4, 3, 2, 1];
         let expected: [u8; 8] = [29, 25, 234, 11, 153, 45, 237, 42];
-        assert_eq!(decrypt(&key, data), expected);
+        decrypt(&key, &mut data);
+        assert_eq!(data, expected);
     }
 
     #[test]
     fn test_is_encrypted() {
         let encrypted: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
         let not_encrypted: [u8; 8] = [1, 2, 3, 4, 0x0d, 6, 7, 8];
-        assert!(is_encrypted(encrypted));
-        assert!(!is_encrypted(not_encrypted));
+        assert!(is_encrypted(&encrypted));
+        assert!(!is_encrypted(&not_encrypted));
+    }
+
+    #[test]
+    fn test_validation() {
+        let invalid: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
+        assert!(matches!(validate(&invalid), Err(ChecksumError)));
     }
 }
