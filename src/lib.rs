@@ -68,6 +68,14 @@ pub enum Metrics {
     Hum { value: f32, unit: String },
 }
 
+pub fn get_topic_suffix(metric: &Metrics) -> &str {
+    match metric {
+        Metrics::Temp { value: _, unit: _ } => "temp",
+        Metrics::Hum {value: _, unit: _} => "hum",
+        Metrics::CO2 {value: _, unit: _} => "co2",
+    }
+}
+
 pub fn parse_record(record: Record) -> Option<Metrics> {
     match record.key {
         0x42 => Some(Metrics::Temp {
@@ -109,7 +117,7 @@ impl Default for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::{decrypt, is_encrypted, validate, Errors::ChecksumError};
+    use crate::{decrypt, is_encrypted, validate, Errors::ChecksumError, Metrics, get_topic_suffix};
 
     #[test]
     fn test_decrypt() {
@@ -132,5 +140,15 @@ mod tests {
     fn test_validation() {
         let invalid: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
         assert!(matches!(validate(&invalid), Err(ChecksumError)));
+    }
+
+    #[test]
+    fn test_topic_mapping() {
+        let hum_metric: Metrics = Metrics::Hum {value: 100.00, unit: String::from("%")};
+        let temp_metric: Metrics = Metrics::Temp {value: 35.00, unit: String::from("°C")};
+        let co2_metric: Metrics = Metrics::CO2 {value: 1500, unit: String::from("ppm")};
+        assert_eq!(get_topic_suffix(&hum_metric), "hum");
+        assert_eq!(get_topic_suffix(&temp_metric), "temp");
+        assert_eq!(get_topic_suffix(&co2_metric), "co2");
     }
 }
