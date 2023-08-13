@@ -1,7 +1,7 @@
 extern crate hidapi;
 
 use clap::{arg, command};
-use co2mon_rs::{decrypt, is_encrypted, parse_record, validate, Config, Record, get_topic_suffix};
+use co2mon_rs::{decrypt, get_topic_suffix, is_encrypted, parse_record, validate, Config, Record};
 use color_eyre::eyre::Result;
 use hidapi::HidApi;
 use rumqttc::{Client, MqttOptions, QoS};

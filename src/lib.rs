@@ -8,7 +8,7 @@ pub enum Errors {
 }
 
 impl fmt::Display for Errors {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Errors::ChecksumError => write!(f, "Checksum Failed!"),
         }
@@ -71,8 +71,8 @@ pub enum Metrics {
 pub fn get_topic_suffix(metric: &Metrics) -> &str {
     match metric {
         Metrics::Temp { value: _, unit: _ } => "temp",
-        Metrics::Hum {value: _, unit: _} => "hum",
-        Metrics::CO2 {value: _, unit: _} => "co2",
+        Metrics::Hum { value: _, unit: _ } => "hum",
+        Metrics::CO2 { value: _, unit: _ } => "co2",
     }
 }
 
@@ -117,7 +117,9 @@ impl Default for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::{decrypt, is_encrypted, validate, Errors::ChecksumError, Metrics, get_topic_suffix};
+    use crate::{
+        decrypt, get_topic_suffix, is_encrypted, validate, Errors::ChecksumError, Metrics,
+    };
 
     #[test]
     fn test_decrypt() {
@@ -144,9 +146,18 @@ mod tests {
 
     #[test]
     fn test_topic_mapping() {
-        let hum_metric: Metrics = Metrics::Hum {value: 100.00, unit: String::from("%")};
-        let temp_metric: Metrics = Metrics::Temp {value: 35.00, unit: String::from("°C")};
-        let co2_metric: Metrics = Metrics::CO2 {value: 1500, unit: String::from("ppm")};
+        let hum_metric: Metrics = Metrics::Hum {
+            value: 100.00,
+            unit: String::from("%"),
+        };
+        let temp_metric: Metrics = Metrics::Temp {
+            value: 35.00,
+            unit: String::from("°C"),
+        };
+        let co2_metric: Metrics = Metrics::CO2 {
+            value: 1500,
+            unit: String::from("ppm"),
+        };
         assert_eq!(get_topic_suffix(&hum_metric), "hum");
         assert_eq!(get_topic_suffix(&temp_metric), "temp");
         assert_eq!(get_topic_suffix(&co2_metric), "co2");
