@@ -1,13 +1,14 @@
 extern crate hidapi;
 
 use clap::{arg, command};
-use co2mon_rs::{decrypt, is_encrypted, parse_record, validate, Config, Record};
+use co2mon_rs::{decrypt, get_topic_suffix, is_encrypted, parse_record, validate, Config, Record};
 use color_eyre::eyre::Result;
 use hidapi::HidApi;
 use rumqttc::{Client, MqttOptions, QoS};
 use std::time::Duration;
 use std::{env, thread};
 use tracing::{debug, info, warn};
+use tracing_subscriber::fmt::format;
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
@@ -67,7 +68,7 @@ fn main() -> Result<()> {
             info!("{:?}", metric);
             client
                 .publish(
-                    mqtt_topic,
+                    format!("{}/{}", mqtt_topic, get_topic_suffix(&metric)),
                     QoS::AtLeastOnce,
                     false,
                     serde_json::to_string(&metric)?,
